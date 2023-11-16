@@ -1,0 +1,78 @@
+@import '../../styles/mixin/media';
+
+header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+
+	img.logo {
+		width: 174px;
+		margin-right: 12px;
+
+		@include media-xs {
+			display: none;
+		}
+	}
+
+	img._logo {
+		display: none;
+		height: 80px;
+
+		@include media-xs {
+			display: block;
+		}
+	}
+
+	nav {
+		position: relative;
+		display: flex;
+		gap: 14px;
+		margin-left: auto;
+		margin-right: 30px;
+
+		.diff {
+			position: absolute;
+			z-index: 100000;
+			top: 0;
+			left: 36px;
+			opacity: 0;
+			animation-name: balance;
+			animation-duration: 600ms;
+			color: #ff0;
+		}
+
+		.wallet-adapter-button {
+			border: 2px solid var(--secondary);
+			border-radius: 10px;
+			height: 52px;
+			background-color: #171224;
+			font-size: 20px;
+			line-height: 1.5;
+			font-weight: 600;
+		}
+
+		@include media-sm {
+			margin-right: 12px;
+
+			.wallet-adapter-button {
+				height: 48px;
+				font-size: 14px;
+
+				i {
+					display: none;
+				}
+			}
+		}
+	}
+
+	@include media-xs {
+		nav {
+			flex-grow: 1;
+
+			.wallet-adapter-button {
+				padding: 0px 12px;
+				font-size: 14px;
+			}
+		}
+	}
+}

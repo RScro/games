@@ -1,0 +1,349 @@
+import { useState, useEffect, useCallback, useRef } from "react";
+import { ToastContainer } from "react-toastify";
+import {
+  Bodies,
+  Body,
+  Composite,
+  Engine,
+  Events,
+  IEventCollision,
+  Render,
+  Runner,
+  World,
+} from "matter-js";
+
+import useWindowSize from "react-use/lib/useWindowSize";
+import { useGameStore } from "../../config/game";
+import { random } from "../../config/random";
+import { LinesType, RiskType } from "./@types";
+import { config, multiplier as multiplierValues } from "../../config";
+import MainLayout from "../../layouts/MainLayout";
+import Panel from "./components/BetAction";
+import GameBoard from "./components/GameBoard";
+import styles from "./plinko.module.scss";
+
+const Plinko = () => {
+  const engine = Engine.create();
+  const [isAuto, setIsAuto] = useState<boolean>(false);
+  const [lines, setLines] = useState<LinesType>(16);
+  const [risk, setRisk] = useState<RiskType>("Low");
+  const inGameBallsCount = useGameStore((state) => state.gamesRunning);
+  const [activeBlock, setActiveBlock] = useState(-1);
+  const [autoBallCount, setAutoBallCount] = useState<number>(1);
+  const [lastMultipliers, setLastMultipliers] = useState<Record<any, any>[]>(
+    []
+  );
+  const incrementInGameBallsCount = useGameStore(
+    (state) => state.incrementGamesRunning
+  );
+  const decrementInGameBallsCount = useGameStore(
+    (state) => state.decrementGamesRunning
+  );
+  const { engine: engineConfig, world: worldConfig, maxBallsCount } = config;
+  const worldWidth: number = worldConfig.width;
+  const worldHeight: number = worldConfig.height;
+  const incrementBalance = useGameStore((state) => state.incrementBalance);
+  const [leftBallCount, setLeftBallCount] = useState<number>(0);
+  const [muted, setMuted] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("muted") === "true";
+    }
+    return false; // Fallback if localStorage is not available
+  });
+
+  const muteRef = useRef<any>(null);
+  muteRef.current = muted;
+
+  const alertUser = (e: BeforeUnloadEvent) => {
+    if (inGameBallsCount > 0) {
+      e.preventDefault();
+      alert("Do you really want to leave?");
+      e.returnValue = "";
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("beforeunload", alertUser);
+    return () => {
+      window.removeEventListener("beforeunload", alertUser);
+    };
+  }, [inGameBallsCount]); //eslint-disable-line
+
+  useEffect(() => {
+    const element = document.getElementById("plinko");
+    const render = Render.create({
+      element: element!,
+      bounds: {
+        max: {
+          x: worldWidth,
+          y: worldHeight,
+        },
+        min: {
+          x: 0,
+          y: 0,
+        },
+      },
+      options: {
+        background: "var(--primary)",
+        hasBounds: true,
+        width: worldWidth,
+        height: worldHeight,
+        wireframes: false,
+      },
+      engine,
+    });
+    const runner = Runner.create();
+    Runner.run(runner, engine);
+    Render.run(render);
+    return () => {
+      World.clear(engine.world, true);
+      Engine.clear(engine);
+      render.canvas.remove();
+      render.textures = {};
+    };
+  }, [risk, lines]); //eslint-disable-line
+
+  const pins: Body[] = [];
+
+  const pinSize = 8 - lines / 4 + (lines === 8 ? 1.2 : 0);
+  const widthUnit = (worldWidth - pinSize * 2) / (lines * 2 + 2);
+  const heightUnit = (worldHeight - pinSize * 2) / (lines + 1);
+
+  for (let i = 0; i < lines; i++) {
+    for (let j = lines - i - 1; j <= lines - i + (i + 2) * 2; j += 2) {
+      const pin = Bodies.circle(
+        widthUnit * j + pinSize,
+        heightUnit * (i + 2) + pinSize - 20,
+        pinSize,
+        {
+          label: `pin-${i}`,
+          render: {
+            fillStyle: "#CABAFF",
+          },
+          isStatic: true,
+        }
+      );
+      pins.push(pin);
+    }
+  }
+
+  const addInGameBall = () => {
+    if (inGameBallsCount > maxBallsCount) return;
+    incrementInGameBallsCount();
+  };
+
+  const removeInGameBall = () => {
+    decrementInGameBallsCount();
+  };
+
+  const addBall = useCallback(
+    (ballValue: number) => {
+      addInGameBall();
+
+      const minBallX = worldWidth / 2 + widthUnit;
+      const maxBallX = worldWidth / 2 - widthUnit;
+      const ballX = random(minBallX, maxBallX);
+      const ballColor = "#ff9010";
+      const ball = Bodies.circle(ballX, heightUnit, pinSize * 1.8, {
+        restitution: 1,
+        friction: 0.6,
+        label: `ball-${ballValue}-${ballX}`,
+        id: new Date().getTime(),
+        frictionAir: 0.05,
+        collisionFilter: {
+          group: -1,
+        },
+        render: {
+          fillStyle: ballColor,
+        },
+        isStatic: false,
+      });
+      Composite.add(engine.world, ball);
+    },
+    [risk, lines] //eslint-disable-line
+  );
+
+  const leftWall = Bodies.rectangle(
+    worldWidth / 3 - 75,
+    worldWidth / 2 - 2,
+    worldWidth * 2,
+    40,
+    {
+      angle: 90,
+      render: {
+        visible: false,
+      },
+      isStatic: true,
+    }
+  );
+  const rightWall = Bodies.rectangle(
+    worldWidth - 125,
+    worldWidth / 2 - 2,
+    worldWidth * 2,
+    40,
+    {
+      angle: -90,
+      render: {
+        visible: false,
+      },
+      isStatic: true,
+    }
+  );
+  const floor = Bodies.rectangle(0, worldWidth + 1, worldWidth * 10, 30, {
+    label: "block-1",
+    render: {
+      visible: false,
+    },
+    isStatic: true,
+  });
+
+  Composite.add(engine.world, [...pins, leftWall, rightWall, floor]);
+
+  const bet = (betValue: number) => {
+    setLeftBallCount((prev) => prev - 1);
+    addBall(betValue);
+  };
+
+  const onCollideWithMultiplier = async (ball: Body, multiplier: Body) => {
+    ball.collisionFilter.group = 2;
+    World.remove(engine.world, ball);
+    removeInGameBall();
+    const ballValue = ball.label.split("-")[1];
+    const startPos = ball.label.split("-")[2];
+    const xPos = ball.position.x;
+    const target = Math.floor((xPos - pinSize) / (widthUnit * 2));
+
+    if (!muteRef.current) {
+      const multiplierSound = new Audio();
+      multiplierSound.autoplay = true;
+
+      multiplierSound.src = "../../../../reach_2.wav";
+      multiplierSound.volume = 0.2;
+
+      multiplierSound.remove();
+    }
+    const multiplierValue = multiplierValues[risk][lines / 4 - 2][target];
+    setActiveBlock(-1);
+    setTimeout(() => {
+      setActiveBlock(target);
+    }, 5);
+    console.log("Risk:", risk, "lines: ", lines);
+    console.log("betValue:", ballValue, "multiplier:", multiplierValue);
+    incrementBalance(+ballValue * multiplierValue);
+    setLastMultipliers((prev) => [
+      { mul: multiplierValue, index: target },
+      ...prev,
+    ]);
+    // await axios.post('http://localhost:8080/makeArray', {
+    // 	line: lines,
+    // 	xpos: startPos,
+    // 	target: target,
+    // })
+  };
+
+  const onBodyCollision = async (event: IEventCollision<Engine>) => {
+    const pairs = event.pairs;
+    for (const pair of pairs) {
+      const { bodyA, bodyB } = pair;
+      if (bodyB.label.includes("ball") && bodyA.label.includes("block")) {
+        onCollideWithMultiplier(bodyB, bodyA);
+      }
+    }
+  };
+
+  const onBounceCollision = async (event: IEventCollision<Engine>) => {
+    if (!muteRef.current) {
+      const ballSound = new Audio();
+      ballSound.autoplay = true;
+      ballSound.volume = 0.2;
+      ballSound.remove();
+      // setTimeout(() => {
+      // 	setBallSoundCount((prev) => prev - 1)
+      // }, 1000)
+
+      // baRef.current[bc++ % 100].play()
+      // console.log(bc)
+      // setBallSoundCount((prev) => prev + 1)
+    }
+
+    const pairs = event.pairs;
+    for (const pair of pairs) {
+      const { bodyA, bodyB } = pair;
+      if (bodyB.label.includes("ball") && bodyA.label.includes("pin")) {
+        const xPos = bodyA.position.x;
+        const yPos = bodyA.position.y;
+        let radius = pinSize;
+        let bounceEffect: any = null;
+        let bounceTimer = setInterval(() => {
+          bounceEffect !== null && World.remove(engine.world, bounceEffect);
+          bounceEffect = Bodies.circle(xPos, yPos, radius, {
+            collisionFilter: { group: -1 },
+            render: {
+              fillStyle: "#fff3",
+            },
+            isStatic: true,
+          });
+          Composite.add(engine.world, bounceEffect);
+          radius = radius + pinSize / 8;
+          if (radius > pinSize * 3) {
+            World.remove(engine.world, bounceEffect);
+            clearInterval(bounceTimer);
+          }
+        }, 5);
+      }
+    }
+  };
+
+  Events.on(engine, "collisionStart", onBodyCollision);
+  Events.on(engine, "collisionStart", onBounceCollision);
+
+  const handleSetMuted = () => {
+    localStorage.setItem("muted", muted === true ? "false" : "true");
+    setMuted((prev) => !prev);
+  };
+
+  return (
+    <MainLayout title="Play Blinko" className={styles.plinko}>
+      <div className="plinko-container">
+        <div className="game-box">
+          <Panel
+            inGameBallsCount={inGameBallsCount}
+            onChangeLines={setLines}
+            onRunBet={bet}
+            onChangeRisk={setRisk}
+            autoBallCount={autoBallCount}
+            onChangeAutoBallCount={setAutoBallCount}
+            isAuto={isAuto}
+            onChangeIsAuto={setIsAuto}
+            leftBallCount={leftBallCount}
+            onChangeLeftBallCount={setLeftBallCount}
+            muted={muted}
+            onChangeMuted={handleSetMuted}
+          />
+          <GameBoard
+            lines={lines}
+            risk={risk}
+            pinSize={pinSize}
+            activeBlock={activeBlock}
+            multiplierHistory={lastMultipliers}
+            leftBallCount={leftBallCount}
+            isAuto={isAuto}
+          />
+        </div>
+      </div>
+      <ToastContainer
+        position="top-right"
+        autoClose={500}
+        hideProgressBar={true}
+        newestOnTop={false}
+        closeOnClick
+        pauseOnHover={false}
+        pauseOnFocusLoss={false}
+        rtl={false}
+        draggable
+      />
+    </MainLayout>
+  );
+};
+
+export default Plinko;

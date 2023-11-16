@@ -1,0 +1,405 @@
+@import "../../styles/mixin/media";
+
+.plinko :global {
+	display: flex;
+	justify-content: center;
+
+	* {
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.plinko-container {
+		position: relative;
+		padding-top: 24px;
+		padding-bottom: 40px;
+		max-width: 1200px;
+
+		@media (max-width: 999px) {
+			padding-top: 24px;
+			padding-bottom: 24px;
+			max-width: 440px;
+
+			.game-box {
+				border-width: 3px !important;
+			}
+		}
+
+		@include media-sm {
+			padding-top: 0px;
+		}
+
+		.game-box {
+			display: flex;
+			overflow: hidden;
+			outline: 1px solid #6D54C8;
+			border: 3px solid var(--background);
+			border-top-width: 5px;
+			border-right-width: 4px;
+			border-bottom-width: 8px;
+			border-radius: 32px;
+			background: var(--primary);
+
+			.bet-action {
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+				min-width: 300px;
+				padding: 40px 12px 12px;
+				background-color: var(--background);
+
+				.game-type {
+					display: grid;
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+					gap: 5px;
+					border-radius: 10px;
+					padding: 5px;
+					background-color: var(--primary);
+
+					button {
+						border-radius: 8px;
+						border: none;
+						padding: 3px;
+						background-color: transparent;
+						font-size: 22px;
+						line-height: 1.5;
+						font-weight: 600;
+
+						&.active {
+							background-color: var(--background);
+						}
+
+						&:not(.active) {
+							color: #6F5CB2;
+						}
+
+						&:hover {
+							background-color: var(--background);
+						}
+					}
+				}
+
+				span.title {
+					margin-left: 4px;
+					font-size: 18px;
+					line-height: 1.5;
+					font-weight: 600;
+					color: #6D6198;
+				}
+
+				.bet-amount {
+					.input-box {
+						display: flex;
+						align-items: center;
+						border-radius: 10px;
+						padding: 5px;
+						background-color: var(--primary);
+
+						span {
+							margin-right: 4px;
+							margin-left: 8px;
+							font-size: 20px;
+							line-height: 1.5;
+							font-weight: 600;
+						}
+
+						input {
+							border: none;
+							outline: none;
+							margin-right: 8px;
+							width: 80px;
+							background-color: var(--primary);
+							font-size: 20px;
+							line-height: 1.5;
+							font-weight: 600;
+						}
+
+						div {
+							display: flex;
+							gap: 3px;
+							margin-left: auto;
+
+							button {
+								border: none;
+								border-radius: 8px;
+								padding: 8px;
+								background-color: #1C182A;
+								font-size: 16px;
+								font-family: 'Poppins';
+
+								&:hover {
+									background-color: var(--secondary);
+									color: white;
+								}
+							}
+						}
+
+						&:hover {
+							border-color: #557086;
+						}
+					}
+				}
+
+				.number-of-bets {
+					div {
+						border-radius: 8px;
+						background: var(--primary);
+
+						input {
+							margin: 8px;
+							border: none;
+							outline: none;
+							padding-left: 4px;
+							width: -webkit-fill-available;
+							background-color: transparent;
+							font-size: 18px;
+							line-height: 1.5;
+
+							&::-webkit-outer-spin-button,
+							&::-webkit-inner-spin-button {
+								-webkit-appearance: none;
+								margin: 0;
+							}
+						}
+
+						&:hover {
+							border-color: #557086;
+						}
+					}
+				}
+
+				.send-ball {
+					margin-top: 12px;
+					box-shadow: 0px 7px #5F2DCA;
+					height: 64px;
+					border: none;
+					background-color: var(--secondary);
+					font-size: 22px;
+					line-height: 1.5;
+					font-weight: 700;
+					color: #fff;
+				}
+
+				&.disabled {
+
+					input,
+					select {
+						cursor: not-allowed;
+					}
+				}
+			}
+
+			@media (max-width: 999px) {
+				flex-direction: column-reverse;
+				height: auto;
+
+				.bet-action {
+					padding-top: 20px;
+					width: auto;
+
+					.bet-amount {
+						order: -3;
+					}
+
+					.send-ball {
+						order: -2;
+					}
+
+					.rows,
+					.risk,
+					.number-of-bets {
+						order: -1;
+					}
+				}
+			}
+
+			.game-board {
+				position: relative;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				overflow: hidden;
+				width: 100%;
+
+				.left-ball-count {
+					position: absolute;
+					z-index: 1;
+					top: 5%;
+					left: 5%;
+				}
+
+				#plinko {
+					position: relative;
+				}
+
+				.multiplier-box {
+					display: flex;
+
+					div {
+						position: relative;
+						z-index: 1;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						flex-grow: 1;
+						box-shadow: 0 4px;
+						margin-bottom: 36px;
+						border-radius: 5px;
+						width: -webkit-fill-available;
+						height: 28px;
+						font-size: 12px;
+						line-height: 0px;
+						font-weight: bold;
+						text-align: center;
+						color: #000c;
+
+						.gradient {
+							position: absolute;
+							z-index: -1;
+							top: 50%;
+							left: 50%;
+							box-shadow: none;
+							width: 144px;
+							height: 144px;
+							transform: translate3d(-50%, -50%, 0);
+							background: radial-gradient(50% 50% at 50% 50%, rgba(234, 51, 71, 0.13) 0%, rgba(234, 51, 71, 0) 100%);
+						}
+
+						&.highlighted {
+							animation-name: bounce;
+							animation-duration: 300ms;
+							animation-timing-function: cubic-bezier(0.18, 0.89, 0.32, 1.28);
+						}
+
+						@include media-md {
+							margin-bottom: 20px;
+						}
+					}
+				}
+
+				.multiplier-history {
+					position: absolute;
+					top: 50%;
+					right: 5%;
+					display: flex;
+					flex-direction: column;
+					transform: translateY(-50%);
+					width: 50px;
+					height: 200px;
+					overflow-y: hidden;
+					border-radius: 12px;
+
+					#multi-container {
+						position: absolute;
+						left: 0;
+						width: 50px;
+						height: auto;
+
+						button {
+							border: none;
+							border-radius: 0px;
+							outline: none;
+							width: 50px;
+							height: 50px;
+							font-weight: 700;
+							color: #000c;
+							transition: all 1s ease-in-out;
+						}
+					}
+				}
+			}
+		}
+
+		.contact-icon {
+			position: fixed;
+			bottom: 36px;
+			right: 36px;
+			cursor: pointer;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			border: 1px solid #F8DD4A;
+			border-radius: 100px;
+			width: 56px;
+			height: 56px;
+			// @media (max-width: 999px) {
+			// 	right: -100px;
+			// }
+
+			svg {
+				width: 34px;
+				height: 34px;
+			}
+
+			@include media-sm {
+				display: none;
+			}
+		}
+	}
+
+	.toggle-button {
+		position: relative;
+		margin-top: auto;
+
+		.react-toggle {
+			position: absolute;
+			bottom: -4px;
+		}
+
+		@media (max-width: 999px) {
+			margin-left: auto;
+			margin-right: auto;
+
+			.react-toggle {
+				position: relative;
+				inset: 0px;
+				margin-top: 4px;
+			}
+		}
+	}
+
+	.mute-toggle {
+
+		&.react-toggle--focus .react-toggle-thumb {
+			box-shadow: none;
+		}
+
+		&.react-toggle:active .react-toggle-thumb {
+			box-shadow: none;
+		}
+
+		.react-toggle-track-x {
+			right: 14px;
+		}
+
+		.react-toggle-thumb {
+			border: none;
+		}
+	}
+
+	.react-toggle--checked .react-toggle-track,
+	.react-toggle--checked .react-toggle-track:hover {
+		background-color: var(--secondary);
+	}
+
+	.react-toggle--checked:hover:not(.react-toggle--disabled) .react-toggle-track {
+		background-color: var(--secondary);
+	}
+
+	.mute-icon {
+		width: 16px;
+		height: 12px;
+		fill: white;
+	}
+
+	@media (max-width: 1536px) and (min-width: 1000px) {
+		.plinko-container {
+			height: 560px;
+		}
+
+		.game-box {
+			transform-origin: top;
+			scale: 0.8;
+		}
+	}
+}
